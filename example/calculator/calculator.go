@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/apache/thrift/lib/go/thrift"
-	tracker "github.com/eleme/thrift-tracker"
+	tracker "github.com/damnever/thrift-tracker"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -864,7 +864,9 @@ return
 
 
 type CtxTProcessorFunction interface {
-  Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (bool, thrift.TException)
+  thrift.TProcessorFunction
+  SetCtx(ctx context.Context)
+  Ctx() context.Context
 }
 
 type CalculatorServiceProcessor struct {
@@ -905,7 +907,8 @@ if err != nil {
     return p.tracker.TryUpgrade(seqId, iprot, oprot)
   }
   if processor, ok := p.GetProcessorFunction(name); ok {
-    return processor.Process(ctx, seqId, iprot, oprot)
+    processor.SetCtx(ctx)
+    return processor.Process(seqId, iprot, oprot)
   }
   iprot.Skip(thrift.STRUCT)
   iprot.ReadMessageEnd()
@@ -919,11 +922,14 @@ if err != nil {
 }
 
 type calculatorServiceProcessorPing struct {
+  ctx context.Context
   tracker tracker.Tracker
   handler CalculatorService
 }
 
-func (p *calculatorServiceProcessorPing) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+func (p *calculatorServiceProcessorPing) SetCtx(ctx context.Context) { p.ctx = ctx }
+func (p *calculatorServiceProcessorPing) Ctx() context.Context { return p.ctx }
+func (p *calculatorServiceProcessorPing) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
 args := CalculatorServicePingArgs{}
 if err = args.Read(iprot); err != nil {
   iprot.ReadMessageEnd()
@@ -939,7 +945,7 @@ iprot.ReadMessageEnd()
 result := CalculatorServicePingResult{}
 var retval bool
 var err2 error
-if retval, err2 = p.handler.Ping(ctx); err2 != nil {
+if retval, err2 = p.handler.Ping(p.Ctx()); err2 != nil {
 switch v := err2.(type) {
   case *CalculatorUserException:
 result.UserException = v
@@ -977,11 +983,14 @@ return true, err
 }
 
 type calculatorServiceProcessorAdd struct {
+  ctx context.Context
   tracker tracker.Tracker
   handler CalculatorService
 }
 
-func (p *calculatorServiceProcessorAdd) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+func (p *calculatorServiceProcessorAdd) SetCtx(ctx context.Context) { p.ctx = ctx }
+func (p *calculatorServiceProcessorAdd) Ctx() context.Context { return p.ctx }
+func (p *calculatorServiceProcessorAdd) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
 args := CalculatorServiceAddArgs{}
 if err = args.Read(iprot); err != nil {
   iprot.ReadMessageEnd()
@@ -997,7 +1006,7 @@ iprot.ReadMessageEnd()
 result := CalculatorServiceAddResult{}
 var retval int32
 var err2 error
-if retval, err2 = p.handler.Add(ctx, args.Num1, args.Num2); err2 != nil {
+if retval, err2 = p.handler.Add(p.Ctx(), args.Num1, args.Num2); err2 != nil {
 switch v := err2.(type) {
   case *CalculatorUserException:
 result.UserException = v
